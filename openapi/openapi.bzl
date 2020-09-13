@@ -41,7 +41,7 @@ def _comma_separated_pairs(pairs):
 def _generator_provider(ctx):
     codegen_provider = "openapi"
     if "io_swagger_swagger_codegen_cli" in ctx.file.codegen_cli.path:
-        codegen_provider = "swagger" 
+        codegen_provider = "swagger"
     return codegen_provider
 
 def _is_swagger_codegen(ctx):
@@ -64,13 +64,21 @@ def _new_generator_command(ctx, gen_dir, rjars):
             language = ctx.attr.language,
             output = gen_dir,
         )
-    
+
     if _is_openapi_codegen(ctx):
         gen_cmd += " org.openapitools.codegen.OpenAPIGenerator generate -i {spec} -g {language} -o {output}".format(
             spec = ctx.file.spec.path,
             language = ctx.attr.language,
             output = gen_dir,
         )
+
+        if ctx.attr.skip_validate_spec:
+            gen_cmd += " --skip-validate-spec"
+
+        if ctx.attr.strict_spec:
+            gen_cmd += " --strict-spec {strict_spec}".format(
+                strict_spec = ctx.attr.strict_spec
+            )
 
     gen_cmd += ' -D "{properties}"'.format(
         properties = _comma_separated_pairs(ctx.attr.system_properties),
@@ -196,6 +204,8 @@ openapi_gen = rule(
         "system_properties": attr.string_dict(),
         "type_mappings": attr.string_dict(),
         "import_mappings": attr.string(),
+        "skip_validate_spec": attr.bool(default = False),
+        "strict_spec": attr.string(),
         "_jdk": attr.label(
             default = Label("@bazel_tools//tools/jdk:current_java_runtime"),
             providers = [java_common.JavaRuntimeInfo],
